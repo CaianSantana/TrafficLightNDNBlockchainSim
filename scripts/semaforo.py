@@ -17,9 +17,9 @@ class Semaforo:
 
     def alterar_tempo(self, ajuste_tempo):
         if self.corAtual !=  "AMARELO":
-            if isinstance(ajuste_tempo, int):  # Verifica se é um número inteiro
+            if isinstance(ajuste_tempo, int):  
                 self.tempo_cores[self.corAtual] += ajuste_tempo
-                self.tempo = max(1, self.tempo + ajuste_tempo)  # Evita tempo negativo ou zero
+                self.tempo = max(1, self.tempo + ajuste_tempo) 
 
                 print(f"⏳ Tempo de {self.corAtual} ajustado para {self.tempo_cores[self.corAtual]} segundos.")
             else:
