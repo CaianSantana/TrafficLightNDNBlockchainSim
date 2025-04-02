@@ -1,1 +1,8 @@
 ndnSIM/
+*.pyc
+lib/
+lib64/
+bin/
+include/
+share/
+pyvenv.cfg
