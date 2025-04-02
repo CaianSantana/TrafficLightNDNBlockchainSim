@@ -5,8 +5,8 @@ class Semaforo:
     def __init__(self):
         self.tempo_cores = {
             "VERDE": 10,
-            "AMARELO": 2,
-            "VERMELHO": 5
+            "AMARELO": 3,
+            "VERMELHO": 10
         }
         self.ciclo_cores = itertools.cycle(self.tempo_cores.keys())
         self.corAtual = next(self.ciclo_cores)  
