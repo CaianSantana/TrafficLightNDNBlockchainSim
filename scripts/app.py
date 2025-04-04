@@ -2,6 +2,7 @@ import threading
 import time
 import socket
 import random
+from fluxo import Fluxo
 from semaforo import Semaforo
 from multidao import Multidao
 from transito import Transito
@@ -9,23 +10,21 @@ from transito import Transito
 # Instância do semáforo
 semaforo = Semaforo()
 multidao = Multidao()
-transito = Transito()
+transito = Transito(10, 2, 60, 8, Fluxo.MEDIO)
 
 
 def muda_temṕo():
     while True:
+        transito.chegar_carro()
+        multidao.chegar_pedestre()
         if semaforo.corAtual == "VERMELHO":
             transito.frear()
             multidao.atravessar()
-            time.sleep(semaforo.tempo)
         elif semaforo.corAtual == "AMARELO":
             transito.reduzir()
-            multidao.chegar_pedestre()
         else:
             transito.avancar()
-            semaforo.alterar_tempo(0)
-            multidao.chegar_pedestre()
-        time.sleep(random.randint(0, max(1,semaforo.tempo_cores.get(semaforo.corAtual))))
+        time.sleep(1)
 
 
 

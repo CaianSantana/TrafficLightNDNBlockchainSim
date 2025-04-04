@@ -4,9 +4,9 @@ import itertools
 class Semaforo:
     def __init__(self):
         self.tempo_cores = {
-            "VERDE": 10,
+            "VERDE": 24,
             "AMARELO": 3,
-            "VERMELHO": 10
+            "VERMELHO": 24
         }
         self.ciclo_cores = itertools.cycle(self.tempo_cores.keys())
         self.corAtual = next(self.ciclo_cores)  
@@ -29,7 +29,7 @@ class Semaforo:
         while True:
             self.tempo = self.tempo_cores[self.corAtual] 
             while self.tempo > 0:
-                print(f"🚦 Semáforo: {self.corAtual} | Tempo: {self.tempo}s")
+                print(f"\n🚦 Semáforo: {self.corAtual} | Tempo: {self.tempo}s")
                 time.sleep(1)
                 self.tempo -= 1
             
