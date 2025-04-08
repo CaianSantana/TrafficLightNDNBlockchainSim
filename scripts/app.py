@@ -68,7 +68,7 @@ def escutar_mensagem(semaforo):
         delay = tempo_atual() - clock
 
         if tag == "DENSIDADE":
-            densidade_local = transito.get_densidade()
+            densidade_local = transito.densidade
             if semaforo.avaliar(densidade_local, dados):
                 semaforo.alterar_tempo(-5)
                 print("✅ Cedeu tempo com base na densidade")
