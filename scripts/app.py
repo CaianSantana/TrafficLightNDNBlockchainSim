@@ -9,7 +9,7 @@ from transito import Transito
 
 # Instância do semáforo
 semaforo = Semaforo()
-multidao = Multidao()
+multidao = Multidao(Fluxo.BAIXO)
 transito = Transito(10, 2, 60, 8, Fluxo.MEDIO)
 
 
@@ -17,10 +17,10 @@ def muda_temṕo():
     while True:
         transito.chegar_carro()
         multidao.chegar_pedestre()
-        if semaforo.corAtual == "VERMELHO":
+        if semaforo.cor_atual == "VERMELHO":
             transito.frear()
             multidao.atravessar()
-        elif semaforo.corAtual == "AMARELO":
+        elif semaforo.cor_atual == "AMARELO":
             transito.reduzir()
         else:
             transito.avancar()
