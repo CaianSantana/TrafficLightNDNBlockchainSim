@@ -1,8 +1,13 @@
+from ndn.app import NDNApp
+from ndn.encoding import Name, FormalName, InterestParam, BinaryStr
+from typing import Optional
+import asyncio
 import time
 import itertools
 
 class Semaforo:
-    def __init__(self, verde=24, amarelo=3, vermelho=24, cruzamento=False):
+    def __init__(self, id, app, verde=24, amarelo=3, vermelho=24, cruzamento=False):
+        self.id = id
         self._tempo_base = (verde, amarelo, vermelho)
         self._tempo_cores = {
             "VERDE": self._tempo_base[0],
@@ -14,8 +19,11 @@ class Semaforo:
         self._cor_atual = next(self._ciclo_cores)
         self._tempo_restante = 0
         self._cruzamento = cruzamento
+        self.running = True
+        self._prefixo = f"/semaforo/{self.id}/status"
+        self._app = app
 
-    # Propriedades de leitura
+    # Propriedades
     @property
     def tempo_cores(self):
         return self._tempo_cores.copy()
@@ -50,19 +58,37 @@ class Semaforo:
             else:
                 print("⚠️ Ajuste de tempo inválido! Deve ser um número inteiro.")
 
-    def contar_tempo(self):
-        while True:
+    async def _contar_tempo(self):
+        while self.running:
             self._tempo_restante = self._tempo_cores[self._cor_atual]
-            while self._tempo_restante > 0:
-                print(f"\n🚦 Semáforo: {self._cor_atual} | Tempo: {self._tempo_restante}s")
-                time.sleep(1)
+            while self._tempo_restante > 0 and self.running:
+                print(f"\n🚦 {self.id} | Cor: {self._cor_atual} | Tempo restante: {self._tempo_restante}s")
+                await asyncio.sleep(1)
                 self._tempo_restante -= 1
-
             self.mudar_cor()
 
-    def avaliar(self, densidade, requisicao):
-        return densidade >= requisicao
+    async def consumer(self):
+        @self._app.route(self._prefixo)
+        async def on_interest(name: FormalName, param: InterestParam, _app_param: Optional[BinaryStr]):
+            print(f'📥 Interesse recebido em {Name.to_str(name)}, {param}')
+            
+            # Exemplo de conteúdo a ser enviado de volta
+            dados = {
+                "id": self.id,
+                "cor": self._cor_atual,
+                "tempo_restante": self._tempo_restante,
+            }
+            content = str(dados).encode()
 
-    def sincronizar(self, tempo, delay):
-        if tempo != self._tempo_restante:
-            self._tempo_restante = tempo - delay
+            await self._app.put_data(name, content=content, freshness_period=2000)
+            print(f'📤 Dados enviados: {dados}')
+
+    async def producer(self):
+        while self.running:
+            nome = Name.from_str(self._prefixo)
+            conteudo = f"{self._cor_atual},{self._tempo_restante}".encode()
+            print(f"[PRODUCER] Enviando: {Name.to_str(nome)} -> {conteudo.decode()}")
+
+            await self._app.put_data(nome, content=conteudo, freshness_period=1000)
+            
+            await asyncio.sleep(1)

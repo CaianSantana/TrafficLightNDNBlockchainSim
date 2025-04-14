@@ -1,95 +1,51 @@
-import threading
+import logging
+import asyncio
+from typing import Optional  # Importação do Optional
+from ndn.app import NDNApp
+from ndn.encoding import Name, FormalName, InterestParam, BinaryStr
 import time
-import socket
-import random
-from fluxo import Fluxo
-from semaforo import Semaforo
-from multidao import Multidao
-from transito import Transito
+from semaforo import Semaforo  # Supondo que a classe Semaforo seja definida em semaforo.py
 
-# Instância do semáforo
-inicio = time.time()
+logging.basicConfig(format='[{asctime}]{levelname}:{message}',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO,
+                    style='{')
 
-semaforo = Semaforo()
-multidao = Multidao(Fluxo.BAIXO)
-transito = Transito(10, 2, 60, 8, Fluxo.MEDIO)
+# Variável global INIT
+INIT = True
 
+app = NDNApp()
+# Instancia os semáforos
+semaforo1 = Semaforo(id=1, app=app)
+semaforo2 = Semaforo(id=2, app=app)
 
-def tempo_atual():
-    return int(time.time() - inicio)
+async def main():
+    global INIT  # Torna a variável INIT global dentro da função main
+    try:
+        # Registra os consumidores
+        await semaforo1.consumer()
+        await semaforo2.consumer()
 
+        if INIT:
+            await asyncio.sleep(5)  # Usando asyncio.sleep para não bloquear o loop
+            INIT = False
+        # Inicia os produtores de forma assíncrona
+        asyncio.create_task(semaforo1.producer())  # Semáforo 1 será o produtor
+        asyncio.create_task(semaforo2.producer())  # Semáforo 2 será o produtor
 
-def coordenar():
-    while True:
-        transito.chegar_carro()
-        multidao.chegar_pedestre()
-        if semaforo.cor_atual == "VERMELHO":
-            transito.frear()
-            multidao.atravessar()
-        elif semaforo.cor_atual == "AMARELO":
-            transito.reduzir()
-        else:
-            transito.avancar()
-        time.sleep(1)
+        # Inicia o contador de tempo para os semáforos de forma assíncrona
+        asyncio.create_task(semaforo1._contar_tempo())
+        asyncio.create_task(semaforo2._contar_tempo())
 
+        # Mantém a execução do aplicativo
+        await app.run_forever()
 
-def enviar_mensagem(mensagem, tag, clock=0):
-    """
-    Envia uma mensagem para outro semáforo (simulado).
-    
-    Parâmetros:
-    - mensagem: valor a ser enviado (ex: densidade ou tempo atual)
-    - tag: tipo da mensagem ('DENSIDADE' ou 'SINCRONIA')
-    - clock: tempo atual do semáforo (opcional, usado na sincronização)
-    """
-    pacote = {
-        "tag": tag,
-        "dados": mensagem,
-        "clock": tempo_atual()
-    }
+    except Exception as e:
+        print(f'Erro: {e}')
 
-    # Simulação de envio (substituir com NDNSim futuramente)
-    print(f"📤 Enviando [{tag}] - Dados: {mensagem} | Clock: {clock}")
-
-def escutar_mensagem(semaforo):
-
-    while True:
-        # Aqui simulamos a recepção da mensagem
-        # No futuro, isso virá via NDNSim
-        mensagem_recebida = {
-            "tag": random.choice(["DENSIDADE", "SINCRONIA"]),
-            "dados": random.randint(10, 30),  # pode ser densidade ou tempo
-            "clock": random.randint(0, 5)
-        }
-
-        tag = mensagem_recebida["tag"]
-        dados = mensagem_recebida["dados"]
-        clock = mensagem_recebida["clock"]
-        delay = tempo_atual() - clock
-
-        if tag == "DENSIDADE":
-            densidade_local = transito.densidade
-            if semaforo.avaliar(densidade_local, dados):
-                semaforo.alterar_tempo(-5)
-                print("✅ Cedeu tempo com base na densidade")
-            else:
-                semaforo.alterar_tempo(5)
-                print("⏩ Manteve prioridade")
-        
-        elif tag == "SINCRONIA":
-            semaforo.sincronizar(dados, delay)
-            print(f"🔄 Sincronizado: tempo ajustado para {semaforo.tempo_restante}s")
-
-        time.sleep(3)  # frequência de escuta
-
-
-
-thread_tempo = threading.Thread(target=semaforo.contar_tempo)
-thread_coordenador = threading.Thread(target=coordenar)
-thread_comunicadora = threading.Thread(target=escutar_mensagem, args=(semaforo,))
-
-
-
-thread_tempo.start()
-thread_coordenador.start()
-thread_comunicadora.start()
+if __name__ == '__main__':
+    try:
+        # Espera o loop principal iniciar e aguarda o resultado de main
+        asyncio.run(main())  # Altere para asyncio.run(main()) para garantir a execução correta
+    except FileNotFoundError:
+        print("⛔ NFD não está rodando!")
